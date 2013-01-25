@@ -35,7 +35,7 @@ class RelatedPageLink extends DataObject {
 				"CopyContentFromID_SubsiteID", 
 				"Subsite", 
 				$subsites->map('ID', 'Title'),
-				($this->CopyContentFromID) ? $this->CopyContentFrom()->SubsiteID : Session::get('SubsiteID')
+				($this->CopyContentFromID) ? $this->CopyContentFrom()->SubsiteID : Subsite::currentSubsite()
 			);
 		}
 		

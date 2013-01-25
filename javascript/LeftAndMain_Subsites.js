@@ -1,9 +1,17 @@
 (function($) {
 	$.entwine('ss', function($) {
-		$('#SubsitesSelect').live('change', function() {
-			window.location.search=$.query.set('SubsiteID', $(this).val());
+		$('#SubsitesSelect').entwine({
+			onchange: function(e) {
+				var url = $.path.addSearchParams(
+					document.location.href.replace(/SubsiteID=[^&]*/, ''),
+					{SubsiteID: $(e.target).val()}
+				);
+
+				$('.cms-container').loadPanel(url);
+				return false;
+			}
 		});
-		
+
 		// Subsite tab of Group editor
 		$('#Form_ItemEditForm_AccessAllSubsites').entwine({
 			/**

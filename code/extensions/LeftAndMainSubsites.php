@@ -12,26 +12,48 @@ class LeftAndMainSubsites extends Extension {
 		Requirements::css('subsites/css/LeftAndMain_Subsites.css');
 		Requirements::javascript('subsites/javascript/LeftAndMain_Subsites.js');
 		Requirements::javascript('subsites/javascript/VirtualPage_Subsites.js');
-		
-		if(isset($_GET['SubsiteID'])) {
-			// Clear current page when subsite changes (or is set for the first time)
-			if(!Session::get('SubsiteID') || $_GET['SubsiteID'] != Session::get('SubsiteID')) {
-				Session::clear("{$this->owner->class}.currentPage");
-			}
-			
-			// Update current subsite in session
-			Subsite::changeSubsite($_GET['SubsiteID']);
-			
-			//Redirect to clear the current page
-			return $this->owner->redirect('admin/pages');
+	}
+
+	function beforeCallActionHandler($req, $action) {
+		$id = $req->param('ItemID');
+
+		$subsite = null;
+
+		if($req->requestVar("SubsiteID") !== null) {
+			$subsite = $req->requestVar("SubsiteID");
+		} elseif($id && is_numeric($id)) {
+			$record = DataObject::get_by_id($this->owner->stat('tree_class'), $id);
+			if($record) $subsite = $record->SubsiteID;
 		}
 
-		// Set subsite ID based on currently shown record
-		$req = $this->owner->getRequest();
-		$id = $req->param('ID');
-		if($id && is_numeric($id)) {
-			$record = DataObject::get_by_id($this->owner->stat('tree_class'), $id);
-			if($record) Session::set('SubsiteID', $record->SubsiteID);
+		if ($subsite) Subsite::changeSubsite($subsite);
+
+		$page = $this->owner->currentPage();
+
+		if($page &&
+		   $page->SubsiteID !== null &&
+		   $page->SubsiteID != Subsite::currentSubsiteID()
+		) {
+			$this->owner->redirect($this->owner->Link());
+			return false;
+		}
+	}
+
+	function updateLink(&$link) {
+		if (Subsite::currentSubsiteID()) {
+			$link = Controller::join_links($link, '?SubsiteID='.Subsite::currentSubsiteID());
+		}
+	}
+
+	function updateLinkWithSearch(&$link) {
+		if (Subsite::currentSubsiteID()) {
+			$link = Controller::join_links($link, '?SubsiteID='.Subsite::currentSubsiteID());
+		}
+	}
+
+	function updateLinkPageAdd(&$link) {
+		if (Subsite::currentSubsiteID()) {
+			$link = Controller::join_links($link, '?SubsiteID='.Subsite::currentSubsiteID());
 		}
 	}
 

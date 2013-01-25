@@ -260,6 +260,8 @@ class Subsite extends DataObject implements PermissionProvider {
 JS;
 	}
 
+	static $subsiteID = null;
+
 	/**
 	 * Gets the subsite currently set in the session.
 	 *
@@ -273,41 +275,41 @@ JS;
 	}
 
 	/**
-	 * This function gets the current subsite ID from the session. It used in the backend so Ajax requests
-	 * use the correct subsite. The frontend handles subsites differently. It calls getSubsiteIDForDomain
-	 * directly from ModelAsController::getNestedController. Only gets Subsite instances which have their
-	 * {@link IsPublic} flag set to TRUE.
+	 * This function gets the current subsite ID. The subsite can be passed by a request variable (GET or POST),
+	 * If not provided, we calculate pased on the requested domain.
 	 *
-	 * You can simulate subsite access without creating virtual hosts by appending ?SubsiteID=<ID> to the request.
-	 *
-	 * @todo Pass $request object from controller so we don't have to rely on $_GET
+	 * We don't use the session as it's unreliable - you often have multiple tabs open on seperate subsites,
+	 * and a session is browser-wide, not tab-wide
 	 *
 	 * @param boolean $cache
 	 * @return int ID of the current subsite instance
 	 */
 	static function currentSubsiteID() {
-		if(isset($_GET['SubsiteID'])) $id = (int)$_GET['SubsiteID'];
-		else $id = Session::get('SubsiteID');
+		if (self::$subsiteID === null) {
+			$request = Controller::curr()->getRequest();
 
-		if($id === NULL) {
-			$id = self::getSubsiteIDForDomain();
-			Session::set('SubsiteID', $id);
+			// First, check request parameters
+			$id = $request->requestVar('SubsiteID');
+			// Finally, calculate based on domain
+			if ($id === null) $id = self::getSubsiteIDForDomain();
+
+			self::$subsiteID = (int)$id;
 		}
 
-		return (int)$id;
+		return self::$subsiteID;
 	}
-	
+
 	/**
-	 * Switch to another subsite.
+	 * Switch to another subsite _within this request_
 	 *
 	 * @param int|Subsite $subsite Either the ID of the subsite, or the subsite object itself
 	 */
 	static function changeSubsite($subsite) {
 		if(is_object($subsite)) $subsiteID = $subsite->ID;
 		else $subsiteID = $subsite;
-		
-		Session::set('SubsiteID', (int)$subsiteID);
-		
+
+		self::$subsiteID = $subsiteID;
+
 		// Set locale
 		if (is_object($subsite) && $subsite->Language != '') {
 			if (isset(i18n::$likely_subtags[$subsite->Language])) {
@@ -316,6 +318,13 @@ JS;
 		}
 		
 		Permission::flush_permission_cache(); 
+	}
+
+	/**
+	 * Redirect the browser to another subsite
+	 */
+	static function redirectToSubsite($subsite, $link = null) {
+		Controller::curr()->redirect(Controller::join_links($subsite->absoluteBaseURL(), $link));
 	}
 
 	/**
@@ -460,7 +469,9 @@ JS;
 	function duplicate($doWrite = true) {
 		$duplicate = parent::duplicate($doWrite);
 
-		$oldSubsiteID = Session::get('SubsiteID');
+
+
+		$oldSubsiteID = self::currentSubsiteID();
 		self::changeSubsite($this->ID);
 
 		/*

@@ -23,7 +23,7 @@ class SubsitesVirtualPage extends VirtualPage {
 			"CopyContentFromID_SubsiteID", 
 			"Subsite", 
 			$subsites->map('ID', 'Title'),
-			($this->CopyContentFromID) ? $this->CopyContentFrom()->SubsiteID : Session::get('SubsiteID')
+			($this->CopyContentFromID) ? $this->CopyContentFrom()->SubsiteID : Subsite::currentSubsite()
 		);
 		$fields->addFieldToTab(
 			'Root.Main',

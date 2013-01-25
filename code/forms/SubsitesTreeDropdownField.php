@@ -28,12 +28,11 @@ class SubsitesTreeDropdownField extends TreeDropdownField {
 	}
 	
 	function tree(SS_HTTPRequest $request) {
-		$oldSubsiteID = Session::get('SubsiteID');
-		Session::set('SubsiteID', $this->subsiteID);
-		
+		$oldSubsiteID = Subsite::currentSubsite();
+
+		Subsite::changeSubsite($this->subsiteID);
 		$results = parent::tree($request);
-		
-		Session::set('SubsiteID', $oldSubsiteID);
+		Subsite::changeSubsite($oldSubsiteID);
 		
 		return $results;
 	}
